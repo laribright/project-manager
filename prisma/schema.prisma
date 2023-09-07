@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  account       Account[]
+  projects      Project[]
+  aiChat        AiChat[]
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  @@unique([provider, providerAccountId])
+}
+
+model Project {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  name          String         @unique
+  description   String
+  slug          String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  projectBoards ProjectBoard[]
+  userId        String         @db.ObjectId
+  user          User           @relation(fields: [userId], references: [id])
+}
+
+model ProjectBoard {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  status    String
+  order     Int
+  slug      String
+  features  Feature[]
+  project   Project   @relation(fields: [projectId], references: [id])
+  projectId String    @db.ObjectId
+
+  @@unique([slug, status, projectId])
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Feature {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  slug           String
+  name           String
+  description    String
+  priority       Priority     @default(LOW)
+  finishDate     DateTime
+  order          Int
+  projectBoard   ProjectBoard @relation(fields: [projectBoardId], references: [id])
+  projectBoardId String       @db.ObjectId
+
+  @@unique([slug, projectBoardId])
+}
+
+model AiChat {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  role    ChatRole
+  content String
+  userId  String   @db.ObjectId
+  user    User     @relation(fields: [userId], references: [id])
+}
+
+enum ChatRole {
+  user
+  assistant
+}
